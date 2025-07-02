@@ -48,7 +48,7 @@ class SiglipVisionEmbeddings(Module):
 
         self.patch_embedding = nn.Conv2d(
             in_channels = config.num_channels,
-            out_channels = config.embed_dim,
+            out_channels = self.embed_dim,
             kernel_size = config.patch_size,
             stride = self.patch_size,
             padding = "valid"
