@@ -41,6 +41,7 @@ class SiglipVisionConfig:
 
 class SiglipVisionEmbeddings(Module):
     def __init__(self, config):
+        super().__init__()
         self.config = config
         self.embed_dim = config.hidden_size
         self.image_size = config.image_size
