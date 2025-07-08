@@ -181,9 +181,8 @@ class SiglipEncoderLayer(Module):
 
 
 class SiglipEncoder(Module):
-    def __init__(config):
+    def __init__(self, config):
         super().__init__()
-        
         self.config = config
         self.layers = nn.ModuleList(
             [SiglipEncoderLayer(config) for _ in range(config.num_hidden_layers)]
