@@ -1,0 +1,3 @@
+
+chmod +x launch_inference.sh
+./launch_inference.sh
