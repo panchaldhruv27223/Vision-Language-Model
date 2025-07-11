@@ -76,7 +76,7 @@ class SiglipVisionEmbeddings(Module):
         
         embeddings = embeddings.transpose(1,2)
 
-        embeddings = embeddings + self.position_embeddings(self.position_ids)
+        embeddings = embeddings + self.positional_embedding(self.position_ids)
 
         return embeddings
 

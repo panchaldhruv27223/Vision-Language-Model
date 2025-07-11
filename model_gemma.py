@@ -16,7 +16,7 @@ class KVCache():
         else:
             ## the shape of kv_cache is [batch_size, num_heads_kv, seq_len, head_dim]
 
-            return self.key_cache[0].size[-2]
+            return self.key_cache[0].size()[-2]
         
     def update(self, key_states, value_states, layer_idx):
 
@@ -111,9 +111,9 @@ class GemmaMLP(nn.Module):
         self.up_proj = nn.Linear(self.hidden_size, self.intermediate_size, bias=False)
         self.down_proj = nn.Linear(self.intermediate_size, self.hidden_size, bias=False)
 
-        def forward(self, x):
+    def forward(self, x):
 
-            return self.down_proj(nn.functional.gelu(self.gate_proj(x), approximate="tanh") * self.up_proj(x))
+        return self.down_proj(nn.functional.gelu(self.gate_proj(x), approximate="tanh") * self.up_proj(x))
 
 class GemmaRotaryEmbeddings(nn.Module):
     def __init__(self, dim, max_position_embeddings=2048, base = 10000, device=None):
@@ -262,7 +262,7 @@ class GemmaAttention(nn.Module):
 
         attn_output = torch.matmul(attn_weights, value_states)
 
-        if attn_output.size() != [bsz, self.num_heads, q_len, self.head_dim]:
+        if attn_output.size() != (bsz, self.num_heads, q_len, self.head_dim):
             raise ValueError(
                 f"Attention output has incorrect size {attn_output.size()} (expected {bsz}, {self.num_heads}, {q_len}, {self.head_dim})"
             )
@@ -326,7 +326,7 @@ class GemmaModel(nn.Module):
     def __init__(self, config):
         super().__init__()
 
-        self.congif = config
+        self.config = config
 
         self.padding_idx = config.pad_token_id
         self.vocab_size = config.vocab_size
@@ -357,7 +357,7 @@ class GemmaModel(nn.Module):
                 kv_cache = kv_cache,
             )
 
-        hidden_states - self.norm(hidden_states)
+        hidden_states = self.norm(hidden_states)
 
         return hidden_states
 
@@ -429,7 +429,7 @@ class PaliGemmaForConditionalGeneration(nn.Module):
 
         self.language_model = language_model
 
-        self.pad_token_id = self.config.pad_token_id if self.config.pas_token_id is not None else -1
+        self.pad_token_id = self.config.pad_token_id if self.config.pad_token_id is not None else -1
         
         
     def tie_weights(self):
@@ -447,7 +447,7 @@ class PaliGemmaForConditionalGeneration(nn.Module):
 
         scaled_image_features = image_features / (self.config.hidden_size**0.5)
 
-        final_embedding = torch.zero(batch_size, sequence_length, embed_dim, dtype= dtype, device = device)
+        final_embedding = torch.zeros(batch_size, sequence_length, embed_dim, dtype= dtype, device = device)
 
         text_mask = (input_ids != self.config.image_token_index) & (input_ids != self.pad_token_id)
 
@@ -472,7 +472,7 @@ class PaliGemmaForConditionalGeneration(nn.Module):
         q_len = input_embeds.shape[1]
 
         if kv_cache is None or kv_cache.num_items() == 0 :
-            casual_mask = torch.full(
+            causal_mask = torch.full(
                 (batch_size, q_len, q_len), fill_value=0, dtype=dtype, device=device
             )
 
@@ -509,7 +509,6 @@ class PaliGemmaForConditionalGeneration(nn.Module):
 
         selected_image_feature = self.vision_tower(pixel_values.to(input_embeds.dtype))
 
-
         image_features = self.multi_model_projector(selected_image_feature)
 
         input_embeds, attention_mask, position_ids = self._merge_input_ids_with_image_features(image_features, input_embeds, input_ids, attention_mask, kv_cache)
@@ -517,9 +516,8 @@ class PaliGemmaForConditionalGeneration(nn.Module):
         outputs = self.language_model(
             attention_mask = attention_mask,
             position_ids = position_ids,
-            input_embeds = input_embeds,
+            inputs_embeds = input_embeds,
             kv_cache = kv_cache
         )
 
         return outputs
-    

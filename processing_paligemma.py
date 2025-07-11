@@ -30,6 +30,9 @@ def rescale(image, scale, dtype=np.float32):
     return rescaled_image
 
 def normalize(image, mean, std):
+    if image.shape[-1] == 4:
+        image = image[:, :, :3]
+
     mean = np.array(mean, dtype = image.dtype)
     std = np.array(std, dtype = image.dtype)
 

@@ -20,6 +20,79 @@ This repository contains a **from-scratch PyTorch implementation** of a custom V
 
 ---
 
+## 📐 Architecture Breakdown
+
+### 🔍 Vision Encoder
+- Based on **SigLIP** (Contrastive Language-Image Pretraining without Labels).
+- A transformer-based image encoder that produces patch-level embeddings.
+- Output shape: `[batch_size, num_patches, vision_hidden_dim]`.
+
+### 🧠 Language Decoder (Gemma-style)
+- Autoregressive transformer decoder.
+- Components:
+  - Rotary Positional Embeddings (RoPE)
+  - RMSNorm
+  - Grouped Query Attention (GQA)
+  - Feedforward MLP block (GEGLU activation)
+  - KV Cache for efficient inference
+- Output shape: `[batch_size, seq_len, hidden_dim]`
+
+### 🔄 Multimodal Fusion
+- Image patch embeddings are projected to match text hidden dimension.
+- These are injected into the token stream via special `<image>` tokens.
+- Final embedding sequence combines text and image embeddings using attention masks.
+
+---
+
+## 🖼️ Preprocessing Pipeline (Processor)
+
+### Responsibilities:
+- Tokenize the input text prompt
+- Resize and normalize the input image
+- Replace `<image>` placeholder tokens with actual image features
+
+### Steps:
+1. **Image Processing**
+   - Resize image to `image_size x image_size`
+   - Normalize using vision model's mean/std
+2. **Text Processing**
+   - Tokenize with tokenizer
+   - Inject special image token (`<image>` or `image_token_index`)
+3. **Fusion**
+   - Merge image tokens with text embeddings
+   - Generate correct attention mask and position ids
+
+---
+
+## 📤 Inference Flow
+
+### Entry: `test_inference()`
+- Accepts: prompt, image path, tokenizer, model, and generation config
+- Flow:
+  1. Preprocess input via `PaliGemmaProcessor`
+  2. Generate image + text embeddings
+  3. Inject into `GemmaForCausalLM`
+  4. Autoregressively generate tokens using top-p or greedy decoding
+
+### Caching:
+- Uses `KVCache` to store key/value states per layer.
+- Only the new token is passed at each step (via `q_len = 1`).
+- Greatly improves inference speed.
+
+---
+
+## 📁 File Structure
+
+```txt
+├── model_gemma.py               # Core model components: Gemma decoder, attention, MLP
+├── processing_paligemma.py     # Processor: image + text token prep
+├── test_inference.py           # Inference runner with Fire CLI
+├── utils.py                    # HF model loader or helper functions
+├── launch_inference.sh         # Shell script for CLI testing
+├── vlm_paligemma_model.png     # Architecture diagram
+
+```
+
 ---
 
 ## 📦 Dependencies
@@ -39,12 +112,14 @@ pip install torch torchvision transformers fire pillow
 
 ---
 
-## 🧠 Inspiration & References
+
+
+
+## 🧠 & 📚 Inspiration & References
 
 This project is heavily inspired by Google DeepMind's **PaliGemma** Vision-Language architecture:
 
 * 🔗 [Google Blog – PaliGemma Explained](https://developers.googleblog.com/en/gemma-explained-paligemma-architecture/)
-* 📺 [YouTube Tutorial](https://youtu.be/vAmKB7iPkWw?si=hJ51teOwZ6Y3Zjct)
 * 📄 [Official Paper (arXiv:2407.07726)](https://arxiv.org/abs/2407.07726)
 
 > This is a **research and learning project**. The implementation is completely custom and does not use pre-trained models.
@@ -58,7 +133,7 @@ This project is currently unlicensed. Feel free to fork and experiment for educa
 
 ---
 
-## 👤 Author
+## 🔖 Author
 
 **Dhruv Panchal**
 [GitHub](https://github.com/panchaldhruv27223)

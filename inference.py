@@ -2,11 +2,8 @@ from multiprocessing import process
 from PIL import Image
 import torch
 import fire 
-
 from processing_paligemma import PaliGemmaProcessor
-
 from model_gemma import PaliGemmaForConditionalGeneration, KVCache
-
 from utils import load_hf_model
 
 
@@ -14,6 +11,8 @@ def move_inputs_to_device(model_inputs, device):
     model_inputs = {k: v.to(device) for k,v in model_inputs.items()}
 
     return model_inputs
+
+
 
 def get_model_inputs(processor:PaliGemmaProcessor, prompt:str, image_file_path:str, device:str):
 
@@ -24,6 +23,9 @@ def get_model_inputs(processor:PaliGemmaProcessor, prompt:str, image_file_path:s
     model_inputs = move_inputs_to_device(model_inputs, device)
 
     return model_inputs
+
+
+
     
 def _sample_top_p(probs, p):
     probs_sort, probs_idx = torch.sort(probs, dim=-1, descending=True)
@@ -41,6 +43,10 @@ def _sample_top_p(probs, p):
     next_token = torch.gather(probs_idx, -1, next_token)
 
     return next_token
+
+
+
+
 
 def test_inference(
         model : PaliGemmaForConditionalGeneration,
